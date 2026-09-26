@@ -35,3 +35,13 @@ class TransactionResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class EventResponse(BaseModel):
+    id: str
+    event_type: EventType
+    timestamp: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class TransactionDetailResponse(TransactionResponse):
+    # Inherits everything from TransactionResponse, but adds the nested events list
+    events: list[EventResponse] = []
