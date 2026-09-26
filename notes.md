@@ -64,7 +64,8 @@ indexes:
  - add a seeding script to add few merchants as needed (merchant_[1-5])
  - Compare timestamps instead of strictly checking state transitions upon incoming
    events to validate it (for eg, a payment_processed event could get lost and a settled event could be the next one arriving)
-
+ - will hard code secrets in pydantic settings and docker compose for convenient testing
+ 
 ## trade offs
  
   - Chose single indexes on merchant_id and created_at in Transaction table instead
