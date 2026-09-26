@@ -42,7 +42,7 @@ All types:
   > payment_processed
   > settled
 
-# payment status
+# payment statuses  
 
  > PENDING
  > SUCCESS 
