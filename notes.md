@@ -42,6 +42,13 @@ All types:
   > payment_processed
   > settled
 
+# payment status
+
+ > PENDING
+ > SUCCESS 
+ > FAILED
+ > REFUNDED
+
 ## data model
 
 ![Entity Relationship Diagram](docs/er_diagram.png)
