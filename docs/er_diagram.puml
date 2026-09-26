@@ -1,0 +1,43 @@
+@startuml
+
+' Styling for cleaner layout
+hide circle
+skinparam linetype ortho
+skinparam EntityBackgroundColor #F9F9F9
+skinparam EntityBorderColor #333333
+
+entity "merchant" as merchant {
+  * id : VARCHAR <<PK>>
+  --
+  * name : VARCHAR
+}
+
+entity "transaction" as transaction {
+  * id : VARCHAR <<PK>>
+  --
+  * merchant_id : VARCHAR <<FK>> <<IDX>>
+  * amount : FLOAT
+  * currency : VARCHAR
+  * current_status : VARCHAR
+  * last_event_timestamp : DATETIME 
+  * created_at : DATETIME <<IDX>>
+  * updated_at : DATETIME
+}
+
+entity "event" as event {
+  * id : VARCHAR <<PK>>
+  --
+  * transaction_id : VARCHAR <<FK>> 
+  * event_type : VARCHAR
+  * timestamp : DATETIME 
+  * created_at : DATETIME
+  --
+  **Indexes:**
+  <<IDX>> composite (transaction_id, timestamp)
+}
+
+' Relationships
+merchant ||--o{ transaction : "1 to Many"
+transaction ||--o{ event : "1 to Many"
+
+@enduml

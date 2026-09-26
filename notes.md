@@ -42,18 +42,35 @@ All types:
   > payment_processed
   > settled
 
-## Data model
+## data model
+
+![Entity Relationship Diagram](docs/er_diagram.png)
 
 main tables required:
  > transaction 
  > event (don't store duplicate events, but store events with invalid state transitions)
  > merchant (only few fields needed for now)
 
-## Assumptions
+indexes:
+ - single index on merchant_id and created_at in Transaction table to support 
+   summaries endpoint
+ - composite index on transaction_id and timestamp in Event table to support 
+   discrepancies query
+
+## assumptions and design decisions
  
  - Merchant entity is owned by its own separate backend service
  - API for creation for merchants are out of scope for this assignment
  - add a seeding script to add few merchants as needed (merchant_[1-5])
+ - Compare timestamps instead of strictly checking state transitions upon incoming
+   events to validate it (for eg, a payment_processed event could get lost and a settled event could be the next one arriving)
+
+## trade offs
+ 
+  - Chose single indexes on merchant_id and created_at in Transaction table instead
+    of a composite index on these columns as it would degrade write performance,
+    search entire table when filterd by a single column, and since all these filters could be individually or used combined, Postgres's index combination feature can be relied on 
+ 
 
 
 
