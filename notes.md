@@ -40,49 +40,16 @@ All types:
   > payment_initiated
   > payment_failed
   > payment_processed
-  > settled
+  > payment_settled
 
 # payment statuses  
 
- > PENDING
- > SUCCESS 
+ > INITIATED
+ > SETTLED 
  > FAILED
- > REFUNDED
+ > PROCESSED
 
-## data model
 
-![Entity Relationship Diagram](docs/er_diagram.png)
-
-main tables required:
- > transaction 
- > event (don't store duplicate events, but store events with invalid state transitions)
- > merchant (only few fields needed for now)
-
-indexes:
- - single index on merchant_id and created_at in Transaction table to support 
-   summaries endpoint
- - composite index on (transaction_id and timestamp) in Event table to support 
-   discrepancies query
-
-## assumptions and design decisions
- 
- - Merchant entity is owned by its own separate backend service
- - API for creation for merchants are out of scope for this assignment
- - add a seeding script to add few merchants as needed (merchant_[1-5])
- - Compare timestamps instead of strictly checking state transitions upon incoming
-   events to validate it (for eg, a payment_processed event could get lost and a settled event could be the next one arriving)
- - Use row level locking to avoid race conditions when updating transaction state
- - will hard code secrets in pydantic settings and docker compose for convenient testing
- 
-## trade offs
- 
-  * Chose single indexes on merchant_id and created_at in Transaction table instead
-    of a composite index on these columns as it would degrade write performance,
-    search entire table when filterd by a single column, and since all these filters could be individually or used combined, Postgres's index combination feature can be relied on 
-
-  * Will keep the current_status on the transaction table even though it's derivable
-    from the event table, since it will lead to better read performance
-  
 
  
 
