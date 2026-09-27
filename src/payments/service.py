@@ -77,7 +77,8 @@ async def process_event(db: AsyncSession, event: schemas.TransactionRequest):
 async def get_transaction_with_events(db: AsyncSession, transaction_id: str):
 
     query = select(models.Transaction).options(
-        selectinload(models.Transaction.events)
+        selectinload(models.Transaction.events),
+        selectinload(models.Transaction.merchant)
     ).where(models.Transaction.id == transaction_id)
     
     result = await db.execute(query)
