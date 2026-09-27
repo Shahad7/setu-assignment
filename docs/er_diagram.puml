@@ -16,12 +16,12 @@ entity "transaction" as transaction {
   * id : VARCHAR <<PK>>
   --
   * merchant_id : VARCHAR <<FK>> <<IDX>>
-  * amount : FLOAT
+  * amount : DECIMAL(10, 2)
   * currency : VARCHAR
   * current_status : VARCHAR
-  * last_event_timestamp : DATETIME 
-  * created_at : DATETIME <<IDX>>
-  * updated_at : DATETIME
+  * last_event_timestamp : TIMESTAMPTZ 
+  * created_at : TIMESTAMPTZ <<IDX>>
+  * updated_at : TIMESTAMPTZ
 }
 
 entity "event" as event {
@@ -29,11 +29,11 @@ entity "event" as event {
   --
   * transaction_id : VARCHAR <<FK>> 
   * event_type : VARCHAR
-  * timestamp : DATETIME 
-  * created_at : DATETIME
+  * timestamp : TIMESTAMPTZ 
+  * created_at : TIMESTAMPTZ
   --
   **Indexes:**
-  <<IDX>> composite (transaction_id, timestamp)
+  <<IDX>> composite (transaction_id, timestamp) INCLUDE (event_type)
 }
 
 ' Relationships

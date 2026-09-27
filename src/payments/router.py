@@ -1,6 +1,8 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Optional
 
 from src.database import get_db
 from src.payments import schemas, service
@@ -35,12 +37,26 @@ async def get_transaction_detail(
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
 
-@router.get("/reconciliation/summary", response_model=List[Dict[str, Any]], tags=["Reconciliation"])
+@router.get("/reconciliation/summary", response_model=Dict[str, Any], tags=["Reconciliation"])
 async def get_summary(
-    dimension: Literal["merchant", "status", "date"] = Query("merchant"),
+    dimension: Literal["merchant", "status", "date"] = Query("merchant", description="Dimension to group by"),
+    start_date: Optional[date] = Query(None, description="Filter from this date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(None, description="Filter up to this date (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db)
 ):
-    return await service.get_reconciliation_summary(db, dimension)
+    # Logical Validation: Ensure date range makes sense
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(
+            status_code=400,
+            detail="start_date cannot be after end_date"
+        )
+
+    return await service.get_reconciliation_summary(
+        db=db, 
+        dimension=dimension,
+        start_date=start_date,
+        end_date=end_date
+    )
 
 @router.get("/reconciliation/discrepancies", response_model=List[Dict[str, Any]], tags=["Reconciliation"])
 async def list_discrepancies(db: AsyncSession = Depends(get_db)):

@@ -1,9 +1,11 @@
+from datetime import date
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, asc, desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy import func, text, cast, Date
-from typing import Literal
+from typing import Literal, Optional
 import logging
 
 from src.payments import models, schemas
@@ -86,7 +88,9 @@ async def get_transaction_with_events(db: AsyncSession, transaction_id: str):
 
 async def get_reconciliation_summary(
     db: AsyncSession, 
-    dimension: Literal["merchant", "status", "date"] = "merchant"
+    dimension: Literal["merchant", "status", "date"] = "merchant",
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None
 ):
     # Map the requested string dimension to the actual SQLAlchemy column expression
     if dimension == "merchant":
@@ -94,7 +98,6 @@ async def get_reconciliation_summary(
     elif dimension == "status":
         group_col = models.Transaction.current_status
     elif dimension == "date":
-        # Group by the day the transaction was created in our system
         group_col = cast(models.Transaction.created_at, Date)
     
     # Build the dynamic aggregation query
@@ -103,67 +106,84 @@ async def get_reconciliation_summary(
         func.count().label("transaction_count"),
         func.sum(models.Transaction.amount).label("total_volume")
     ).group_by(group_col)
+
+    # Apply date filters if provided
+    if start_date:
+        query = query.where(cast(models.Transaction.created_at, Date) >= start_date)
+    if end_date:
+        query = query.where(cast(models.Transaction.created_at, Date) <= end_date)
     
     result = await db.execute(query)
     
-    return [
-        {
-            dimension: str(row.dimension_value) if row.dimension_value else None,
-            "count": row.transaction_count,
-            "total_volume": float(row.total_volume) if row.total_volume else 0.0
-        }
-        for row in result.all()
-    ]
+    rows = result.all()
+    
+    return {
+        "meta": {
+            "dimension": dimension,
+            "period_start": start_date or "all_time",
+            "period_end": end_date or "all_time",
+            "total_records_processed": sum(row.transaction_count for row in rows),
+            "total_system_volume": float(sum(row.total_volume for row in rows if row.total_volume) or 0.0)
+        },
+        "results": [
+            {
+                "dimension_value": row.dimension_value.name if hasattr(row.dimension_value, 'name') else row.dimension_value,
+                "transaction_count": row.transaction_count,
+                "total_volume": float(row.total_volume) if row.total_volume else 0.0
+            }
+            for row in rows
+        ]
+    }
 
-async def get_discrepancies(db: AsyncSession):
+from sqlalchemy import text
+from typing import List, Dict, Any
+from sqlalchemy.ext.asyncio import AsyncSession
 
+async def get_discrepancies(db: AsyncSession) -> List[Dict[str, Any]]:
     raw_query = text("""
-        WITH transaction_paths AS (
-            -- Step 1: Build the chronological timeline of events per transaction
-            SELECT 
-                transaction_id, 
-                STRING_AGG(event_type::text, ' ➔ ' ORDER BY timestamp ASC) as state_path,
-                MAX(timestamp) as last_event_time
-            FROM event 
-            GROUP BY transaction_id
-        ),
-        evaluated_paths AS (
-            -- Step 2: Apply the discrepancy rules sequentially
+        WITH state_transitions AS (
             SELECT 
                 transaction_id,
-                state_path,
+                event_type AS from_state,
+                timestamp AS event_time,
+                LEAD(event_type) OVER (PARTITION BY transaction_id ORDER BY timestamp ASC) AS to_state,
+                LAG(event_type) OVER (PARTITION BY transaction_id ORDER BY timestamp ASC) AS prev_state
+            FROM setu.event
+        ),
+        evaluated_discrepancies AS (
+            SELECT 
+                transaction_id,
                 CASE
-                    -- 1. Missing Initiation (Orphan)
-                    -- If it doesn't start exactly with payment_initiated, the first event was dropped or arrived out of order.
-                    WHEN state_path NOT LIKE 'payment_initiated%' THEN 'Orphan: Missing or late payment initiation'
+                    -- If a transition happens, it MUST be one of these valid paths.
+                    WHEN to_state IS NOT NULL AND NOT (
+                        (from_state = 'PAYMENT_INITIATED' AND to_state IN ('PAYMENT_PROCESSED', 'PAYMENT_FAILED')) OR
+                        (from_state = 'PAYMENT_PROCESSED' AND to_state IN ('SETTLED', 'PAYMENT_FAILED'))
+                    ) THEN 'Invalid transition: ' || from_state || ' ➔ ' || to_state
                     
-                    -- 2. Catch the Zombies (Failed then Settled)
-                    WHEN state_path LIKE '%payment_failed% ➔ %settled%' THEN 'Zombie: Settled after failure'
+                    -- Orphan Check
+                    -- If there is no previous state, the from_state MUST be PAYMENT_INITIATED
+                    WHEN prev_state IS NULL AND from_state != 'PAYMENT_INITIATED'
+                    THEN 'Missing initiation: started at ' || from_state
                     
-                    -- 3. Conflicting Reversal (Settled then Failed)
-                    WHEN state_path LIKE '%settled% ➔ %payment_failed%' THEN 'Conflict: Failed after being settled'
+                    -- Stuck Transaction Check
+                    -- If there is no next state, it's not terminal, and 24 hours have passed
+                    WHEN to_state IS NULL 
+                         AND from_state NOT IN ('SETTLED', 'PAYMENT_FAILED')
+                         AND event_time < NOW() - INTERVAL '24 hours'
+                    THEN 'Stuck: No terminal state after 24h from ' || from_state
                     
-                    -- 4. Catch Skipped Steps
-                    WHEN state_path LIKE '%settled%' AND state_path NOT LIKE '%payment_processed%' THEN 'Skipped: Settled without processing'
-                    
-                    -- 5. Duplicate Terminal Events
-                    -- A gateway should never send multiple settlements or multiple failures for the same transaction.
-                    WHEN state_path LIKE '%settled% ➔ %settled%' THEN 'Duplicate: Multiple settlement events'
-                    WHEN state_path LIKE '%payment_failed% ➔ %payment_failed%' THEN 'Duplicate: Multiple failure events'
-                    
-                    -- 6. Catch Stuck Transactions (In progress, but too old)
-                    WHEN state_path NOT LIKE '%settled%' AND state_path NOT LIKE '%payment_failed%' 
-                         AND last_event_time < NOW() - INTERVAL '48 hours' THEN 'Stuck: No terminal state after 48h'
-                END as discrepancy_reason
-            FROM transaction_paths
+                    ELSE NULL
+                END AS discrepancy_reason
+            FROM state_transitions
         )
-      
+        
+        -- Aggregate all reasons per transaction into a clean array
         SELECT 
-            transaction_id, 
-            state_path, 
-            discrepancy_reason
-        FROM evaluated_paths
-        WHERE discrepancy_reason IS NOT NULL;
+            transaction_id,
+            ARRAY_AGG(discrepancy_reason) AS reasons
+        FROM evaluated_discrepancies
+        WHERE discrepancy_reason IS NOT NULL
+        GROUP BY transaction_id;
     """)
     
     result = await db.execute(raw_query)
@@ -171,8 +191,7 @@ async def get_discrepancies(db: AsyncSession):
     return [
         {
             "transaction_id": row.transaction_id,
-            "state_path": row.state_path,
-            "reason": row.discrepancy_reason
+            "reasons": row.reasons
         }
         for row in result.all()
     ]
