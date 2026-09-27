@@ -4,13 +4,13 @@ Please find the Postman collection [here](./docs/Setu.postman_collection.json)
 
 ## Instructions to run
 
-To run locally using docker compose, execute below command in your terminal
+### To run locally using docker compose, execute below command in your terminal
 
   ```docker compose up -d```
 
+Once the services are up, if you want to pre-seed data, use the ```scripts/seed.py``` as below:
 
-
-
+  ```docker compose exec app python -m scripts.seed```
 
 ## Data model
 
@@ -46,9 +46,15 @@ indexes:
   * Will keep the current_status on the transaction table even though it's derivable
     from the event table, since it will lead to better read performance
 
+## AI usage
+
+Gemini Pro was used like a pair programmer for discussing and overall syntax help
+
 ## Improvements needed
 
 - better tests
 - better request validations
 - proper error handling
+
+
   
