@@ -2,11 +2,11 @@
 
 ## Live demo
 
-Live URL : https://setu-assignment-backend-service.onrender.com
+Live URL : https://transactions-reconciliation-api.onrender.com
 (In case, it takes time to spin up or seems to be down due to inactivity, please consider
 running locally if possible, live deployment has data already pre-seeded)
 
-API docs : https://setu-assignment-backend-service.onrender.com/docs
+API docs : https://transactions-reconciliation-api.onrender.com/docs
 
 Please find the Postman collection [here](./docs/Setu.postman_collection.json)
 
