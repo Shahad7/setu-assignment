@@ -85,7 +85,7 @@ async def get_transaction_with_events(db: AsyncSession, transaction_id: str):
 
 async def get_reconciliation_summary(
     db: AsyncSession, 
-    dimension: Literal["merchant", "status", "date"] = "status"
+    dimension: Literal["merchant", "status", "date"] = "merchant"
 ):
     # Map the requested string dimension to the actual SQLAlchemy column expression
     if dimension == "merchant":
@@ -107,7 +107,6 @@ async def get_reconciliation_summary(
     
     return [
         {
-            # str() ensures Dates and Enums serialize cleanly into JSON
             dimension: str(row.dimension_value) if row.dimension_value else None,
             "count": row.transaction_count,
             "total_volume": float(row.total_volume) if row.total_volume else 0.0
