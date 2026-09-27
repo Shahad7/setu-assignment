@@ -1,5 +1,13 @@
 # setu-assignment
 
+## Live demo
+
+Live URL : https://setu-assignment-backend-service.onrender.com
+(In case, it takes time to spin up or seems to be down due to inactivity, please consider
+running locally if possible, live deployment has data already pre-seeded)
+
+API docs : https://setu-assignment-backend-service.onrender.com/docs
+
 Please find the Postman collection [here](./docs/Setu.postman_collection.json)
 
 ## Instructions to run
@@ -12,18 +20,20 @@ Once the services are up, if you want to pre-seed data, use the ```scripts/seed.
 
   ```docker compose exec app python -m scripts.seed```
 
+The API documentation as default is available at http://localhost:8000/docs (or appropriate port) when running locally
+
 ## Data model
 
 ![Entity Relationship Diagram](docs/er_diagram.png)
 
-main tables required:
+Main tables required:
  - transaction 
  - event 
  - merchant 
 
-indexes:
+Indexes:
  - single index on merchant_id and created_at in Transaction table to support 
-   summaries endpoint
+   reconciliation summaries endpoint
  - composite index on (transaction_id and timestamp) in Event table to support 
    discrepancies query
 
@@ -55,6 +65,7 @@ Gemini Pro was used like a pair programmer for discussing and overall syntax hel
 - better tests
 - better request validations
 - proper error handling
+- better filters for reconciliations/discrepancies endpoint
 
 
   
