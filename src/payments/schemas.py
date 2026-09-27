@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from enum import Enum
@@ -27,7 +29,7 @@ class TransactionRequest(BaseModel):
 class TransactionResponse(BaseModel):
     id: str 
     merchant_id: str
-    amount: float
+    amount: Decimal
     currency: str
     current_status: PaymentStatus 
     last_event_timestamp: datetime

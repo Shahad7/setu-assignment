@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List
 from sqlalchemy import String, Numeric, DateTime, Enum as SQLEnum, ForeignKey, Index
 from sqlalchemy.sql import func
@@ -20,7 +21,7 @@ class Transaction(Base):
     
     id: Mapped[str] = mapped_column(String, primary_key=True)
     merchant_id: Mapped[str] = mapped_column(String, ForeignKey("setu.merchant.id"), index=True, nullable=False)
-    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     currency: Mapped[str] = mapped_column(String, nullable=False)
     current_status: Mapped[PaymentStatus] = mapped_column(SQLEnum(PaymentStatus), nullable=False)
     last_event_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -41,6 +42,7 @@ class Event(Base):
     
     # When combining Indexes and kwargs, they must be in a tuple where the dict is the last element
     __table_args__ = (
-        Index("idx_transaction_timestamp", "transaction_id", "timestamp"),
+        Index("idx_transaction_timestamp", "transaction_id", 
+              "timestamp",postgresql_include=["event_type"]),
         {"schema": "setu"}
     )

@@ -9,4 +9,4 @@ app = FastAPI(
 )
 
 # Register the payments router
-app.include_router(payments_router)
+app.include_router(payments_router,prefix="/api/v1/payments")
