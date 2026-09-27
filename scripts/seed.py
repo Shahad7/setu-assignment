@@ -36,13 +36,13 @@ async def seed_database():
             "PAYMENT_FAILED": "FAILED"
         }
 
-        base_ingestion_time = datetime.now(timezone.utc)
         for index,e in enumerate(events_data):
             tx_id = e["transaction_id"]
             parsed_timestamp = datetime.fromisoformat(e["timestamp"])
             
             # Convert the event string to the correct uppercase event format if needed
             raw_event = e["event_type"].upper()
+            base_ingestion_time = datetime.now(timezone.utc)
             simulated_ingestion_time = base_ingestion_time + timedelta(milliseconds=index)
 
             events.append({

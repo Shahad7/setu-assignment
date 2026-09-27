@@ -20,7 +20,7 @@ class TransactionQueryParams:
         sort_order: Literal["asc", "desc"] = Query("desc", description="Sort direction"),
         
         # Pagination
-        limit: int = Query(50, ge=1, le=100, description="Number of records to return"),
+        limit: int = Query(50, ge=1, le=2000, description="Number of records to return"),
         offset: int = Query(0, ge=0, description="Number of records to skip")
     ):
         self.merchant_id = merchant_id
