@@ -17,9 +17,9 @@ Once the services are up, if you want to pre-seed data, use the ```scripts/seed.
 ![Entity Relationship Diagram](docs/er_diagram.png)
 
 main tables required:
- > transaction 
- > event (don't store duplicate events, but store events with invalid state transitions)
- > merchant (only few fields needed for now)
+ - transaction 
+ - event 
+ - merchant 
 
 indexes:
  - single index on merchant_id and created_at in Transaction table to support 
