@@ -8,13 +8,13 @@ class EventType(str, Enum):
     PAYMENT_INITIATED = "payment_initiated"
     PAYMENT_PROCESSED = "payment_processed"
     PAYMENT_FAILED = "payment_failed"
-    PAYMENT_SETTLED = "settled"
+    PAYMENT_SETTLED = "payment_settled"
 
 class PaymentStatus(str, Enum):
-    PENDING = "PENDING"
-    SUCCESS = "SUCCESS"
+    PROCESSED = "PROCESSED"
+    SETTLED = "SETTLED"
     FAILED = "FAILED"
-    REFUNDED = "REFUNDED"
+    INITIATED = "INITIATED"
 
 class TransactionRequest(BaseModel):
     event_id: str = Field(..., description="Unique ID for this specific event")

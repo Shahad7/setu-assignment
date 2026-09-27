@@ -1,8 +1,8 @@
 """create_tables
 
-Revision ID: 15ef04e91ccd
+Revision ID: ec6fc8286310
 Revises: 
-Create Date: 2026-09-27 15:26:39.199694
+Create Date: 2026-09-27 17:00:17.974420
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '15ef04e91ccd'
+revision: str = 'ec6fc8286310'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,7 +32,7 @@ def upgrade() -> None:
     sa.Column('merchant_id', sa.String(), nullable=False),
     sa.Column('amount', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('currency', sa.String(), nullable=False),
-    sa.Column('current_status', sa.Enum('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED', name='paymentstatus'), nullable=False),
+    sa.Column('current_status', sa.Enum('PROCESSED', 'SETTLED', 'FAILED', 'INITIATED', name='paymentstatus'), nullable=False),
     sa.Column('last_event_timestamp', sa.DateTime(timezone=True), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),

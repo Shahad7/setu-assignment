@@ -24,13 +24,13 @@ async def process_event(db: AsyncSession, event: schemas.TransactionRequest):
 
     # Determine status mapping
     if event.event_type == schemas.EventType.PAYMENT_PROCESSED:
-        new_status = schemas.PaymentStatus.SUCCESS
+        new_status = schemas.PaymentStatus.PROCESSED
     elif event.event_type == schemas.EventType.PAYMENT_FAILED:
         new_status = schemas.PaymentStatus.FAILED
     elif event.event_type == schemas.EventType.PAYMENT_SETTLED:
-        new_status = schemas.PaymentStatus.SUCCESS
+        new_status = schemas.PaymentStatus.SETTLED
     else:
-        new_status = schemas.PaymentStatus.PENDING
+        new_status = schemas.PaymentStatus.INITIATED
 
     if not transaction:
         # First time seeing this transaction
