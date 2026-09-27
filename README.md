@@ -1,4 +1,4 @@
-# setu-assignment
+# transactions-reconciliation-api-assignment
 
 ## Live demo
 
@@ -9,6 +9,7 @@ running locally if possible, live deployment has data already pre-seeded)
 API docs : https://transactions-reconciliation-api.onrender.com/docs
 
 Please find the Postman collection [here](./docs/Setu.postman_collection.json)
+
 
 ## Instructions to run
 
@@ -21,6 +22,7 @@ Once the services are up, if you want to pre-seed data, use the ```scripts/seed.
   ```docker compose exec app python -m scripts.seed```
 
 The API documentation as default is available at http://localhost:8000/docs (or appropriate port) when running locally
+
 
 ## Data model
 
@@ -37,6 +39,7 @@ Indexes:
  - composite index on (transaction_id and timestamp) in Event table to support 
    discrepancies query
 
+
 ## Assumptions and Design decisions
  
  - Merchant entity is owned by its own separate backend service
@@ -47,6 +50,7 @@ Indexes:
  - Use row level locking to avoid race conditions when updating transaction state
  - will hard code secrets in pydantic settings and docker compose for convenient testing
  
+
 ## Trade offs
  
   * Chose single indexes on merchant_id and created_at in Transaction table instead
@@ -56,9 +60,11 @@ Indexes:
   * Will keep the current_status on the transaction table even though it's derivable
     from the event table, since it will lead to better read performance
 
+
 ## AI usage
 
 Gemini Pro was used like a pair programmer for discussing and overall syntax help
+
 
 ## Improvements needed
 
