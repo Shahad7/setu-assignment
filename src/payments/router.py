@@ -20,7 +20,7 @@ async def ingest_event(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/transactions", response_model=List[schemas.TransactionResponse], tags=["Transactions"])
+@router.get("/transactions", response_model=schemas.PaginatedResponse[schemas.TransactionResponse], tags=["Transactions"])
 async def list_transactions(
     params: TransactionQueryParams = Depends(),
     db: AsyncSession = Depends(get_db)

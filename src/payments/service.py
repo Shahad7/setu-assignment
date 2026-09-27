@@ -197,10 +197,9 @@ async def get_discrepancies(db: AsyncSession) -> List[Dict[str, Any]]:
     ]
 
 async def get_transactions(db: AsyncSession, params: TransactionQueryParams):
-
+    # Build the base query with all dynamic filters
     query = select(models.Transaction)
     
-    # Apply dynamic filters
     if params.merchant_id:
         query = query.where(models.Transaction.merchant_id == params.merchant_id)
     if params.status:
@@ -210,14 +209,38 @@ async def get_transactions(db: AsyncSession, params: TransactionQueryParams):
     if params.end_date:
         query = query.where(models.Transaction.created_at <= params.end_date)
         
-    # Apply sorting dynamically
+    # Execute the Count Query (BEFORE adding order_by, limit, or offset)
+    # Wrapping the base query in a subquery guarantees the filters apply to the count
+    count_query = select(func.count()).select_from(query.subquery())
+    total_items = await db.scalar(count_query) or 0
+        
+    # Apply sorting
     sort_column = getattr(models.Transaction, params.sort_by)
     if params.sort_order == "desc":
         query = query.order_by(desc(sort_column))
     else:
         query = query.order_by(asc(sort_column))
         
+    # Apply pagination limits
     query = query.limit(params.limit).offset(params.offset)
     
+    # Fetch the actual data chunk
     result = await db.execute(query)
-    return result.scalars().all()
+    items = result.scalars().all()
+    
+    # Calculate pagination metadata
+    current_page = (params.offset // params.limit) + 1
+    total_pages = (total_items + params.limit - 1) // params.limit # Integer ceiling math
+    
+    # Return a structured dictionary
+    return {
+        "data": items,
+        "meta": {
+            "total_items": total_items,
+            "current_page": current_page,
+            "total_pages": total_pages,
+            "limit": params.limit,
+            "has_next_page": current_page < total_pages,
+            "has_previous_page": current_page > 1
+        }
+    }

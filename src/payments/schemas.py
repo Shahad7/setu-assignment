@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Generic, List, TypeVar
 
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
@@ -47,3 +48,18 @@ class EventResponse(BaseModel):
 class TransactionDetailResponse(TransactionResponse):
     # Inherits everything from TransactionResponse, but adds the nested events list
     events: list[EventResponse] = []
+
+
+T = TypeVar('T')
+
+class PaginationMeta(BaseModel):
+    total_items: int
+    current_page: int
+    total_pages: int
+    limit: int
+    has_next_page: bool
+    has_previous_page: bool
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    data: List[T]
+    meta: PaginationMeta
