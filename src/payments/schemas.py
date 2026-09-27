@@ -17,18 +17,18 @@ class PaymentStatus(str, Enum):
     FAILED = "FAILED"
     INITIATED = "INITIATED"
 
-class TransactionRequest(BaseModel):
+class EventRequest(BaseModel):
     event_id: str = Field(..., description="Unique ID for this specific event")
     event_type: EventType = Field(..., description="The event type")
     transaction_id: str = Field(..., description="Unique ID for the transaction")
     merchant_id: str = Field(..., description="ID of the merchant")
     merchant_name: str = Field(..., description="Name of the merchant")
-    amount: float = Field(..., gt=0, description="Payment amount must be strictly positive")
+    amount: Decimal = Field(..., gt=0, description="Payment amount must be strictly positive")
     currency: str = Field(default="INR", min_length=3, max_length=3)
     timestamp: datetime = Field(..., description="When the event occurred")
 
 class TransactionResponse(BaseModel):
-    id: str 
+    id: str
     merchant_id: str
     amount: Decimal
     currency: str
@@ -43,6 +43,7 @@ class EventResponse(BaseModel):
     id: str
     event_type: EventType
     timestamp: datetime
+    created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class TransactionDetailResponse(TransactionResponse):

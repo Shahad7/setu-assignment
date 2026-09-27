@@ -1,5 +1,6 @@
 from datetime import date
 
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, asc, desc
 from sqlalchemy.exc import IntegrityError
@@ -13,7 +14,7 @@ from src.payments.dependencies import TransactionQueryParams
 
 logger = logging.getLogger(__name__)
 
-async def process_event(db: AsyncSession, event: schemas.TransactionRequest):
+async def process_event(db: AsyncSession, event: schemas.EventRequest):
 
     txn_query = select(models.Transaction).where(
         models.Transaction.id == event.transaction_id
@@ -44,6 +45,17 @@ async def process_event(db: AsyncSession, event: schemas.TransactionRequest):
         )
         db.add(transaction)
     else:
+        if transaction.merchant_id != event.merchant_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Data conflict: Transaction {transaction.id} belongs to merchant {transaction.merchant_id}."
+            )
+        
+        if transaction.amount != event.amount or transaction.currency != event.currency:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Data conflict: Amount/Currency mismatch for transaction {transaction.id}."
+            )
         # Only update the transaction state if this event is chronologically newer 
         # than the highest timestamp we have processed so far.
         if event.timestamp > transaction.last_event_timestamp:
@@ -56,7 +68,7 @@ async def process_event(db: AsyncSession, event: schemas.TransactionRequest):
     event_query = select(models.Event).where(models.Event.id == event.event_id)
     event_result = await db.execute(event_query)
     existing_event = event_result.scalar_one_or_none()
-
+    processed_event = existing_event
     if not existing_event:
         new_event = models.Event(
             id=event.event_id,
@@ -64,12 +76,18 @@ async def process_event(db: AsyncSession, event: schemas.TransactionRequest):
             event_type=event.event_type,
             timestamp=event.timestamp
         )
+        processed_event = new_event
         db.add(new_event)
 
     try:
         await db.commit()
-        await db.refresh(transaction)
-        return transaction
+        await db.refresh(processed_event)
+        return {
+            "id": processed_event.id,          
+            "event_type": processed_event.event_type,
+            "timestamp": processed_event.timestamp,
+            "created_at": processed_event.created_at
+        }
     except IntegrityError as e:
         await db.rollback()
         if "foreign key constraint" in str(e.orig).lower():
@@ -157,7 +175,7 @@ async def get_discrepancies(db: AsyncSession) -> List[Dict[str, Any]]:
                     -- If a transition happens, it MUST be one of these valid paths.
                     WHEN to_state IS NOT NULL AND NOT (
                         (from_state = 'PAYMENT_INITIATED' AND to_state IN ('PAYMENT_PROCESSED', 'PAYMENT_FAILED')) OR
-                        (from_state = 'PAYMENT_PROCESSED' AND to_state IN ('SETTLED', 'PAYMENT_FAILED'))
+                        (from_state = 'PAYMENT_PROCESSED' AND to_state IN ('PAYMENT_SETTLED', 'PAYMENT_FAILED'))
                     ) THEN 'Invalid transition: ' || from_state || ' ➔ ' || to_state
                     
                     -- Orphan Check
@@ -168,7 +186,7 @@ async def get_discrepancies(db: AsyncSession) -> List[Dict[str, Any]]:
                     -- Stuck Transaction Check
                     -- If there is no next state, it's not terminal, and 24 hours have passed
                     WHEN to_state IS NULL 
-                         AND from_state NOT IN ('SETTLED', 'PAYMENT_FAILED')
+                         AND from_state NOT IN ('PAYMENT_SETTLED', 'PAYMENT_FAILED')
                          AND event_time < NOW() - INTERVAL '24 hours'
                     THEN 'Stuck: No terminal state after 24h from ' || from_state
                     

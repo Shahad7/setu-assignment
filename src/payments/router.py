@@ -10,9 +10,9 @@ from src.payments.dependencies import TransactionQueryParams
 
 router = APIRouter()
 
-@router.post("/events", response_model=schemas.TransactionResponse, status_code=201, tags=["Events"])
+@router.post("/events", response_model=schemas.EventResponse, status_code=201, tags=["Events"])
 async def ingest_event(
-    payload: schemas.TransactionRequest, 
+    payload: schemas.EventRequest, 
     db: AsyncSession = Depends(get_db)
 ):
     try:
