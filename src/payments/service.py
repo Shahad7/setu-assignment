@@ -7,7 +7,7 @@ from typing import Literal
 import logging
 
 from src.payments import models, schemas
-from src.payments.dependencies import PaymentQueryParams
+from src.payments.dependencies import TransactionQueryParams
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ async def get_discrepancies(db: AsyncSession):
         for row in result.all()
     ]
 
-async def get_transactions(db: AsyncSession, params: PaymentQueryParams):
+async def get_transactions(db: AsyncSession, params: TransactionQueryParams):
 
     query = select(models.Transaction)
     

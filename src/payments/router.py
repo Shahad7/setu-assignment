@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Literal
 
 from src.database import get_db
 from src.payments import schemas, service
-from src.payments.dependencies import PaymentQueryParams
+from src.payments.dependencies import TransactionQueryParams
 
 router = APIRouter()
 
@@ -20,7 +20,7 @@ async def ingest_event(
 
 @router.get("/transactions", response_model=List[schemas.TransactionResponse], tags=["Transactions"])
 async def list_transactions(
-    params: PaymentQueryParams = Depends(),
+    params: TransactionQueryParams = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
     return await service.get_transactions(db, params)
